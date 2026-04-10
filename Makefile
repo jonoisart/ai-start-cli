@@ -5,13 +5,14 @@ PIP := $(VENV)/bin/pip3
 .PHONY: dev install uninstall test venv symlink
 
 venv:
-	python3 -m venv $(VENV)
+	test -d $(VENV) || python3 -m venv $(VENV)
 
 symlink:
-	ln -sf "$(PWD)/.venv/bin/ai" "$(HOME)/bin/ai"
+	mkdir -p "$(HOME)/.local/bin"
+	ln -sf "$(PWD)/.venv/bin/ai" "$(HOME)/.local/bin/ai"
 
 dev: venv
-	$(PIP) install -e .
+	$(PIP) install -e ".[dev]"
 	$(MAKE) symlink
 
 install: venv
@@ -19,8 +20,8 @@ install: venv
 	$(MAKE) symlink
 
 uninstall:
-	$(PIP) uninstall -y ai-launcher
-	rm -f "$(HOME)/bin/ai"
+	$(PIP) uninstall -y ai-launcher || true
+	rm -f "$(HOME)/.local/bin/ai"
 
 test: venv
 	$(PYTHON) -m pytest tests/ -v
