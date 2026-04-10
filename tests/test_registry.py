@@ -26,6 +26,13 @@ def test_load_reads_existing(reg_path):
     assert data["defaults"]["port"] == 9999
 
 
+def test_load_corrupt_raises(reg_path):
+    reg_path.write_text("{not valid json")
+    import click
+    with pytest.raises(click.ClickException):
+        registry.load()
+
+
 def test_get_model_found(reg_path):
     reg_path.write_text(json.dumps({
         "defaults": {},
