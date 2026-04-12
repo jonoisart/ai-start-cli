@@ -1,3 +1,4 @@
+"""JSON model registry CRUD. All functions take `data: dict` as first arg; caller manages load/save lifecycle."""
 import json
 import os
 from pathlib import Path
@@ -37,6 +38,7 @@ def load() -> dict:
 
 def save(data: dict) -> None:
     p = _path()
+    p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2))
     tmp.rename(p)

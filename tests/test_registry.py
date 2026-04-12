@@ -1,6 +1,7 @@
 import json
 import os
 import pytest
+import click
 from pathlib import Path
 from ai import registry
 
@@ -28,7 +29,6 @@ def test_load_reads_existing(reg_path):
 
 def test_load_corrupt_raises(reg_path):
     reg_path.write_text("{not valid json")
-    import click
     with pytest.raises(click.ClickException):
         registry.load()
 
@@ -45,7 +45,6 @@ def test_get_model_found(reg_path):
 
 def test_get_model_not_found_raises(reg_path):
     data = registry.load()
-    import click
     with pytest.raises(click.ClickException):
         registry.get_model(data, "does-not-exist")
 
@@ -68,7 +67,6 @@ def test_add_and_remove_model(reg_path):
 
 def test_remove_unknown_raises(reg_path):
     data = registry.load()
-    import click
     with pytest.raises(click.ClickException):
         registry.remove_model(data, "ghost")
 
