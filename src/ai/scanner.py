@@ -108,7 +108,7 @@ def _format_params(count: int) -> str:
 def nickname_from_filename(path: Path) -> str:
     stem = path.stem
     # Cut at quantization pattern (e.g. -Q8_0, _Q4_K_M)
-    m = re.search(r"[-_][Qq][0-9]", stem)
+    m = re.search(r"[-_][Ii][Qq][0-9]|[-_][Qq][0-9]", stem)
     if m:
         stem = stem[: m.start()]
     nick = re.sub(r"[^a-zA-Z0-9]+", "-", stem).lower().strip("-")
