@@ -4,7 +4,7 @@
 
 # 🤖 AI Launcher
 
-> The missing package manager for local LLMs. Stop memorizing paths and fighting with flags—just `ai run qwen` or `ai run gemma` etc.
+> The missing package manager for local LLMs. Stop memorizing paths and fighting with flags—just `ai start qwen` or `ai start gemma` etc.
 
 AI Launcher is a command-line tool that turns your scattered GGUF models into a manageable, launchable collection. No GUI bloat, no Docker required, no internet needed after setup.
 
@@ -14,8 +14,8 @@ AI Launcher is a command-line tool that turns your scattered GGUF models into a 
 
 **Zero-config model launching**
 ```bash
-ai run qwen                    # Start your model
-ai run gemma 4096 8084        # Custom context + port
+ai start qwen                    # Start your model
+ai start gemma 4096 8084        # Custom context + port
 ```
 
 **Smart registry** - Knows where your models live so you don't have to type `/Users/onoi/.cache/huggingface/hub/models--HauhauCS--...` ever again.
@@ -58,7 +58,7 @@ ai scan ~/Downloads
 ai scan ~/.cache/huggingface/hub
 
 # Launch
-ai run qwen
+ai start qwen
 ```
 
 ---
@@ -67,7 +67,7 @@ ai run qwen
 
 | Command | Description | Status |
 |---------|-------------|--------|
-| `ai run <model> [ctx] [port]` | Start server (foreground) | ✅ |
+| `ai start <model> [ctx] [port]` | Start server (foreground) | ✅ |
 | `ai start <model>` | Start server (background) | ✅ |
 | `ai stop [port]` | Stop server | ✅ |
 | `ai ps` | List running servers | ✅ |

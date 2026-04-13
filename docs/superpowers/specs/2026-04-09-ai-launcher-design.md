@@ -86,7 +86,7 @@ Location: `~/.config/ai/registry.json`
 
 ### Schema Rules
 
-- `defaults` apply to every `ai run` invocation; per-model fields override them.
+- `defaults` apply to every `ai start` invocation; per-model fields override them.
 - `ctx` is required per-model and has no global default — models have hard context limits that differ. `ai scan` and `ai add` always prompt for ctx if it can't be read from the GGUF header.
 - `reasoning` (bool): passes `--reasoning-format none` to llama-server when `false`. Only meaningful for thinking models (Qwen3, DeepSeek-R1, etc.).
 - `jinja` (bool): passes `--jinja` flag when `true`. Required for models with complex Jinja chat templates.
@@ -97,7 +97,7 @@ Location: `~/.config/ai/registry.json`
 
 ## Commands
 
-### `ai run <model> [--ctx N] [--port N] [--temp F]`
+### `ai start <model> [--ctx N] [--port N] [--temp F]`
 
 Starts `llama-server` in the foreground. CLI flags override registry values.
 
@@ -194,7 +194,7 @@ GGUF header parsing reads the first ~4KB of the file:
 ### `server.py`
 
 - `build_argv(model: dict) -> list[str]` — construct full `llama-server` arg list
-- `run(argv: list[str])` — `os.execvp` into llama-server (replaces process)
+- `start(argv: list[str])` — `os.execvp` into llama-server (replaces process)
 - `stop(port: int)` — find and kill PID
 - `status(port: int) -> dict` — check port + hit `/health`
 - `find_llama_server() -> str` — locate binary via PATH, raise with install hint if missing
@@ -218,7 +218,7 @@ No business logic in `cli.py`.
 | Model file missing from disk | "Model file not found: <path>. Re-run `ai scan` or `ai add`." |
 | Port already in use | "Port <N> in use (PID <pid>). Run `ai stop --port <N>` first." |
 | `llama-server` not in PATH | "llama-server not found. Install with: brew install llama.cpp" |
-| `ai chat` with no server running | "No server on port <N>. Start with: ai run <model>" |
+| `ai chat` with no server running | "No server on port <N>. Start with: ai start <model>" |
 | GGUF header parse failure | Proceed with filename heuristics, mark entry `"unverified": true` |
 | Registry file corrupt | Print path, suggest deleting and re-running `ai scan` |
 

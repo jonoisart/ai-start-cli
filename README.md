@@ -124,7 +124,7 @@ It looks like this is your first time running ai-launcher.
    → Starting server on port 8083... ✓
    → Health check passed! ✓
    
-   Setup complete! Try: ai run qwen
+   Setup complete! Try: ai start qwen
 
    Next steps:
    - ai install <model>    # Download new models
