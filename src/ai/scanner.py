@@ -9,6 +9,8 @@ FILE_TYPE_NAMES = {
     10: "Q2_K", 11: "Q3_K_S", 12: "Q3_K_M", 13: "Q3_K_L",
     14: "Q4_K_S", 15: "Q4_K_M", 16: "Q5_K_S", 17: "Q5_K_M",
     18: "Q6_K", 19: "IQ2_XXS", 20: "IQ2_XS",
+    21: "IQ2_M", 22: "IQ1_M", 23: "IQ4_K_S", 24: "IQ4_K_M",
+    25: "IQ3_K_S", 26: "IQ3_K_M", 27: "IQ3_K_L",
     28: "IQ4_NL", 29: "IQ3_S", 30: "IQ3_M",
     31: "IQ1_S", 32: "IQ4_XS",
 }
@@ -66,7 +68,6 @@ def parse_gguf_header(path: Path) -> dict:
             kv_count = struct.unpack(int_fmt, f.read(int_size))[0]
 
             result = {}
-            arch = None
 
             for _ in range(kv_count):
                 key = _read_str(f, version)

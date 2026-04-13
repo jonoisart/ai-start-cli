@@ -84,6 +84,17 @@ def test_parse_extracts_params(tmp_path):
     assert result["params"] == "7B"
 
 
+def test_parse_extracts_params_millions(tmp_path):
+    data = gguf_v3([
+        ("general.architecture", 8, "llama"),
+        ("general.parameter_count", 10, 700_000_000),
+    ])
+    f = tmp_path / "model.gguf"
+    f.write_bytes(data)
+    result = scanner.parse_gguf_header(f)
+    assert result["params"] == "700M"
+
+
 def test_parse_skips_array_values(tmp_path):
     # Array of uint32 followed by a real key we care about
     array_block = struct.pack("<I", 4)   # elem type uint32
