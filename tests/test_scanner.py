@@ -203,3 +203,48 @@ def test_parse_v1_format(tmp_path):
     f.write_bytes(buf)
     result = scanner.parse_gguf_header(f)
     assert result.get("arch") == "mistral"
+
+
+# --- find_ggufs ---
+
+def test_find_ggufs_finds_gguf_files(tmp_path):
+    (tmp_path / "model.gguf").write_bytes(b"x")
+    (tmp_path / "other.txt").write_bytes(b"x")
+    subdir = tmp_path / "sub"
+    subdir.mkdir()
+    (subdir / "deep.gguf").write_bytes(b"x")
+    results = scanner.find_ggufs(str(tmp_path), depth=5)
+    names = {p.name for p in results}
+    assert "model.gguf" in names
+    assert "deep.gguf" in names
+    assert "other.txt" not in names
+
+
+def test_find_ggufs_respects_depth(tmp_path):
+    deep = tmp_path / "a" / "b" / "c"
+    deep.mkdir(parents=True)
+    (deep / "buried.gguf").write_bytes(b"x")
+    results = scanner.find_ggufs(str(tmp_path), depth=2)
+    names = {p.name for p in results}
+    assert "buried.gguf" not in names
+
+
+def test_find_ggufs_returns_empty_for_missing_path():
+    results = scanner.find_ggufs("/nonexistent/path/xyz", depth=5)
+    assert results == []
+
+
+# --- is_registered ---
+
+def test_is_registered_true(tmp_path):
+    f = tmp_path / "model.gguf"
+    f.write_bytes(b"x")
+    reg = {"models": {"qwen": {"path": str(f)}}}
+    assert scanner.is_registered(f, reg) is True
+
+
+def test_is_registered_false(tmp_path):
+    f = tmp_path / "model.gguf"
+    f.write_bytes(b"x")
+    reg = {"models": {}}
+    assert scanner.is_registered(f, reg) is False

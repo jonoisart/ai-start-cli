@@ -114,3 +114,38 @@ def nickname_from_filename(path: Path) -> str:
         stem = stem[: m.start()]
     nick = re.sub(r"[^a-zA-Z0-9]+", "-", stem).lower().strip("-")
     return nick[:32]
+
+
+DEFAULT_SCAN_PATHS = [
+    "~/.cache/huggingface/hub",
+    "~/.cache/llama.cpp",
+    "~/Downloads",
+    "/Volumes",
+]
+
+
+def find_ggufs(path: str, depth: int = 5) -> list:
+    root = Path(path).expanduser()
+    if not root.exists():
+        return []
+    return _walk(root, depth)
+
+
+def _walk(directory: Path, depth: int) -> list:
+    if depth < 0:
+        return []
+    results = []
+    try:
+        for entry in directory.iterdir():
+            if entry.is_file() and entry.suffix.lower() == ".gguf":
+                results.append(entry)
+            elif entry.is_dir() and not entry.is_symlink():
+                results.extend(_walk(entry, depth - 1))
+    except PermissionError:
+        pass
+    return results
+
+
+def is_registered(path: Path, registry: dict) -> bool:
+    registered_paths = {m["path"] for m in registry.get("models", {}).values()}
+    return str(path) in registered_paths
