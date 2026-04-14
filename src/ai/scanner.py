@@ -132,6 +132,7 @@ def find_ggufs(path: str, depth: int = 5) -> list:
 
 
 def _walk(directory: Path, depth: int) -> list:
+    """Recursively find .gguf files. depth=0 returns files in directory only (no subdirs)."""
     if depth < 0:
         return []
     results = []
@@ -147,5 +148,7 @@ def _walk(directory: Path, depth: int) -> list:
 
 
 def is_registered(path: Path, registry: dict) -> bool:
-    registered_paths = {m["path"] for m in registry.get("models", {}).values()}
+    registered_paths = {
+        m["path"] for m in registry.get("models", {}).values() if "path" in m
+    }
     return str(path) in registered_paths

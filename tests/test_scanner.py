@@ -248,3 +248,20 @@ def test_is_registered_false(tmp_path):
     f.write_bytes(b"x")
     reg = {"models": {}}
     assert scanner.is_registered(f, reg) is False
+
+
+def test_is_registered_skips_records_without_path(tmp_path):
+    f = tmp_path / "model.gguf"
+    f.write_bytes(b"x")
+    reg = {"models": {"broken": {}, "good": {"path": str(f)}}}
+    # must not raise KeyError on the record missing "path"
+    assert scanner.is_registered(f, reg) is True
+
+
+def test_find_ggufs_depth_inclusion_boundary(tmp_path):
+    """depth=3 must reach a file 3 levels deep."""
+    deep = tmp_path / "a" / "b" / "c"
+    deep.mkdir(parents=True)
+    (deep / "buried.gguf").write_bytes(b"x")
+    results = scanner.find_ggufs(str(tmp_path), depth=3)
+    assert "buried.gguf" in {p.name for p in results}
