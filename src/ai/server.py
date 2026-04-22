@@ -4,6 +4,7 @@ import os
 import shutil
 import signal
 import subprocess
+import urllib.error
 import urllib.request
 
 import click
@@ -19,11 +20,17 @@ def find_llama_server() -> str:
 
 
 def build_argv(model: dict) -> list:
+    path = model.get("path")
+    ctx = model.get("ctx")
+    if not path:
+        raise click.ClickException("Model record missing 'path'. Re-run 'ai scan' or 'ai add'.")
+    if not ctx:
+        raise click.ClickException("Model record missing 'ctx'. Re-run 'ai add' to set context size.")
     binary = find_llama_server()
     argv = [
         binary,
-        "-m", model["path"],
-        "-c", str(model["ctx"]),
+        "-m", path,
+        "-c", str(ctx),
         "--port", str(model.get("port", 8083)),
         "--temp", str(model.get("temp", 0.7)),
         "--top-p", str(model.get("top_p", 0.8)),
@@ -46,8 +53,10 @@ def start(argv: list) -> None:
 
 
 def _get_pid(port: int) -> int | None:
+    # -sTCP:LISTEN targets only the listening socket — avoids multi-PID output
+    # from established client connections on the same port
     result = subprocess.run(
-        ["lsof", "-ti", f"tcp:{port}"],
+        ["lsof", "-ti", f"tcp:{port}", "-sTCP:LISTEN"],
         capture_output=True, text=True
     )
     pid_str = result.stdout.strip()
@@ -74,5 +83,5 @@ def status(port: int) -> dict:
         ) as resp:
             data = json.loads(resp.read())
             return {"running": True, "pid": pid, "health": data}
-    except Exception:
+    except (OSError, urllib.error.URLError, json.JSONDecodeError, ValueError):
         return {"running": True, "pid": pid, "health": None}

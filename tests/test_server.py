@@ -20,7 +20,7 @@ MODEL = {
 
 @pytest.fixture(autouse=True)
 def mock_llama_server():
-    with patch("shutil.which", return_value="/opt/homebrew/bin/llama-server"):
+    with patch("ai.server.shutil.which", return_value="/opt/homebrew/bin/llama-server"):
         yield
 
 
@@ -76,13 +76,13 @@ def test_build_argv_jinja_false():
 # --- find_llama_server ---
 
 def test_find_llama_server_found():
-    with patch("shutil.which", return_value="/opt/homebrew/bin/llama-server"):
+    with patch("ai.server.shutil.which", return_value="/opt/homebrew/bin/llama-server"):
         assert server.find_llama_server() == "/opt/homebrew/bin/llama-server"
 
 
 def test_find_llama_server_not_found_raises():
     import click
-    with patch("shutil.which", return_value=None):
+    with patch("ai.server.shutil.which", return_value=None):
         with pytest.raises(click.ClickException, match="brew install llama.cpp"):
             server.find_llama_server()
 
@@ -90,15 +90,15 @@ def test_find_llama_server_not_found_raises():
 # --- stop ---
 
 def test_stop_kills_process():
-    with patch("subprocess.run") as mock_run:
+    with patch("ai.server.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout="12345\n", returncode=0)
-        with patch("os.kill") as mock_kill:
+        with patch("ai.server.os.kill") as mock_kill:
             server.stop(8083)
             mock_kill.assert_called_once_with(12345, 15)  # SIGTERM
 
 
 def test_stop_no_process_prints_message(capsys):
-    with patch("subprocess.run") as mock_run:
+    with patch("ai.server.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout="", returncode=1)
         server.stop(8083)
         captured = capsys.readouterr()
@@ -108,9 +108,9 @@ def test_stop_no_process_prints_message(capsys):
 # --- status ---
 
 def test_status_running():
-    with patch("subprocess.run") as mock_run:
+    with patch("ai.server.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout="12345\n", returncode=0)
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("ai.server.urllib.request.urlopen") as mock_urlopen:
             mock_resp = MagicMock()
             mock_resp.__enter__ = lambda s: s
             mock_resp.__exit__ = MagicMock(return_value=False)
@@ -122,7 +122,25 @@ def test_status_running():
 
 
 def test_status_not_running():
-    with patch("subprocess.run") as mock_run:
+    with patch("ai.server.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout="", returncode=1)
         result = server.status(8083)
         assert result["running"] is False
+
+
+def test_start_calls_execvp():
+    with patch("ai.server.os.execvp") as mock_exec:
+        server.start(["/usr/bin/llama-server", "-m", "model.gguf"])
+        mock_exec.assert_called_once_with(
+            "/usr/bin/llama-server",
+            ["/usr/bin/llama-server", "-m", "model.gguf"]
+        )
+
+
+def test_build_argv_uses_defaults_for_optional_keys():
+    m = {"path": "/tmp/x.gguf", "ctx": 4096}
+    argv = server.build_argv(m)
+    assert "--port" in argv
+    assert "8083" in argv
+    assert "--temp" in argv
+    assert "-fa" in argv  # flash_attn defaults True
