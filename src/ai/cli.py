@@ -1,5 +1,6 @@
 """AI Launcher CLI — thin dispatch layer. No business logic here."""
 import json
+import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -99,7 +100,7 @@ def start(model, ctx, port, temp):
         merged["temp"] = temp
 
     actual_port = merged.get("port", 8083)
-    existing_pid = server._get_pid(actual_port)
+    existing_pid = server.get_pid(actual_port)
     if existing_pid:
         raise click.ClickException(
             f"Port {actual_port} in use (PID {existing_pid}). Run 'ai stop --port {actual_port}' first."
@@ -123,7 +124,7 @@ def chat(model, message, port):
     merged = registry.merge_defaults(m, reg["defaults"])
     actual_port = port or merged.get("port", 8083)
 
-    if not server._get_pid(actual_port):
+    if not server.get_pid(actual_port):
         raise click.ClickException(
             f"No server on port {actual_port}. Start with: ai start {model}"
         )
@@ -146,8 +147,12 @@ def chat(model, message, port):
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read())
             click.echo(data["choices"][0]["message"]["content"])
-    except Exception as e:
-        raise click.ClickException(f"Request failed: {e}")
+    except urllib.error.HTTPError as e:
+        raise click.ClickException(f"Server returned HTTP {e.code}: {e.reason}")
+    except (urllib.error.URLError, OSError) as e:
+        raise click.ClickException(f"Connection failed: {e.reason}")
+    except (json.JSONDecodeError, KeyError):
+        raise click.ClickException("Server returned unexpected response format.")
 
 
 # ── scan ──────────────────────────────────────────────────────────────────────

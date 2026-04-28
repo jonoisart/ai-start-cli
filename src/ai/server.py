@@ -52,7 +52,7 @@ def start(argv: list) -> None:
     os.execvp(argv[0], argv)
 
 
-def _get_pid(port: int) -> int | None:
+def get_pid(port: int) -> int | None:
     # -sTCP:LISTEN targets only the listening socket — avoids multi-PID output
     # from established client connections on the same port
     result = subprocess.run(
@@ -61,6 +61,9 @@ def _get_pid(port: int) -> int | None:
     )
     pid_str = result.stdout.strip()
     return int(pid_str) if pid_str else None
+
+
+_get_pid = get_pid  # backward compat for existing tests
 
 
 def stop(port: int) -> None:
