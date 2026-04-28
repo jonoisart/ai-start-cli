@@ -2,6 +2,23 @@
 
 ---
 
+## TODO
+[X] 1. **Local Model Discovery** (`ai scan`) - High value, uses existing infra
+2. **Config extraction** - Prerequisite for onboarding
+3. **Onboarding wizard** (`ai init`) - First-run experience
+4. **Install command** (`ai install`) - Growth feature
+- [ ] add mlx-lm and other model types to scan (try web fetch for list of model types and commands?)
+- [ ] web fetch for commands and options for each model 
+- [ ] want to test mlx-lm models, add to `ai run <...>` commands
+        ```
+        brew install python@3.11
+
+        python3.11 -m venv ~/.venvs/mlx
+        source ~/.venvs/mlx/bin/activate
+        pip install mlx-lm
+
+---
+
 ## Phase 1: Core Improvements (Ready to Build Now)
 
 ### 1.4 Local Model Discovery (Auto-Import)
@@ -199,10 +216,6 @@ ai migrate --dry-run         # Preview what would be imported
 
 ---
 
-## Immediate Implementation Order
 
-1. **Local Model Discovery** (`ai scan`) - High value, uses existing infra
-2. **Config extraction** - Prerequisite for onboarding
-3. **Onboarding wizard** (`ai init`) - First-run experience
-4. **Install command** (`ai install`) - Growth feature
+        ```
 

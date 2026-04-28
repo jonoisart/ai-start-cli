@@ -247,11 +247,12 @@ def scan(path, depth, auto):
 @click.argument("nickname")
 def add(path, nickname):
     """Manually register a GGUF model file."""
-    gguf_path = Path(path).expanduser().resolve()
+    input_path = Path(path).expanduser()
+    if input_path.suffix.lower() != ".gguf":
+        raise click.ClickException(f"Expected a .gguf file, got: {input_path.name}")
+    gguf_path = input_path.resolve()
     if not gguf_path.exists():
-        raise click.ClickException(f"File not found: {gguf_path}")
-    if gguf_path.suffix.lower() != ".gguf":
-        raise click.ClickException(f"Expected a .gguf file, got: {gguf_path.name}")
+        raise click.ClickException(f"File not found: {input_path}")
 
     reg = registry.load()
     meta = scanner.parse_gguf_header(gguf_path)

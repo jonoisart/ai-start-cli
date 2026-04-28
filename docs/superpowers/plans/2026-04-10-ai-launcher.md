@@ -951,6 +951,8 @@ def build_argv(model: dict) -> list:
         "--top-k", str(model.get("top_k", 20)),
         "--min-p", str(model.get("min_p", 0)),
         "-ngl", str(model.get("n_gpu_layers", 99)),
+        "--embeddings", str(model.get("embeddings", True)),
+        "--pooling", str(model.get("pooling", "mean")),
     ]
     if model.get("flash_attn", True):
         argv += ["-fa", "on"]
