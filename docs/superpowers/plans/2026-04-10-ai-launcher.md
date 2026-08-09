@@ -960,6 +960,10 @@ def build_argv(model: dict) -> list:
         argv += ["--reasoning-format", "none"]
     if model.get("jinja", False):
         argv.append("--jinja")
+    if model.get("name"):
+        argv += ["--alias", model["name"]]
+    if model.get("embeddings", True):
+        argv += ["--embeddings", "--pooling", model.get("pooling", "mean")]
     return argv
 
 

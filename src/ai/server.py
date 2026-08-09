@@ -37,8 +37,6 @@ def build_argv(model: dict) -> list:
         "--top-k", str(model.get("top_k", 20)),
         "--min-p", str(model.get("min_p", 0)),
         "-ngl", str(model.get("n_gpu_layers", 99)),
-        "--embeddings", str(model.get("embedding", "true")),
-        "--pooling", str(model.get("pooling", "mean")),
     ]
     if model.get("flash_attn", True):
         argv += ["-fa", "on"]
@@ -46,6 +44,10 @@ def build_argv(model: dict) -> list:
         argv += ["--reasoning-format", "none"]
     if model.get("jinja", False):
         argv.append("--jinja")
+    if model.get("name"):
+        argv += ["--alias", model["name"]]
+    if model.get("embeddings", True):
+        argv += ["--embeddings", "--pooling", model.get("pooling", "mean")]
     return argv
 
 

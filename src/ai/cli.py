@@ -207,9 +207,7 @@ def scan(path, depth, auto):
             nickname = click.prompt("  Nickname", default=default_nick)
             display_name = click.prompt("  Display name", default=default_name)
 
-        ctx = meta.get("ctx")
-        if not ctx:
-            ctx = click.prompt("  Context length", type=int, default=4096)
+        ctx = click.prompt("  Context length", type=int, default=meta.get("ctx") or 4096)
 
         reasoning = False
         jinja = False
@@ -268,8 +266,8 @@ def add(path, nickname):
     else:
         click.echo("Could not parse metadata — please fill in manually.")
 
-    display_name = click.prompt("Display name", default=gguf_path.stem)
-    ctx = meta.get("ctx") or click.prompt("Context length", type=int, default=4096)
+    display_name = click.prompt("Display name", default=input_path.stem)
+    ctx = click.prompt("Context length", type=int, default=meta.get("ctx") or 4096)
     reasoning = click.confirm("Enable reasoning output?", default=False)
     jinja = click.confirm("Use Jinja chat template?", default=False)
 
