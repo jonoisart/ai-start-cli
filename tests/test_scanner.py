@@ -1,3 +1,11 @@
+"""Scanner tests.
+
+Unlike the other test modules, the model filenames here are deliberately
+realistic — `Qwen3.5-9B-Uncensored-Q8_0.gguf` and friends are the actual input
+under test, proving that quantization suffixes get stripped off real-world
+HuggingFace naming. Do not replace them with placeholder names; the realism is
+the point. (Elsewhere in the suite, `banana` marks values the code ignores.)
+"""
 import struct
 import pytest
 from pathlib import Path

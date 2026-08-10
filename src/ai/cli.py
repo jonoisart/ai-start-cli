@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from ai import registry, scanner, server
+from ai import config, registry, scanner, server
 
 
 @click.group()
@@ -49,11 +49,11 @@ def path(model):
 # ── status ────────────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--port", default=None, type=int, help="Port to check (default: registry default)")
+@click.option("--port", default=None, type=int, help="Port to check (default: from config.json)")
 def status(port):
     """Check if a server is running."""
-    reg = registry.load()
-    actual_port = port or reg["defaults"].get("port", 8083)
+    cfg = config.load()
+    actual_port = port or cfg.get("port", 8083)
     s = server.status(actual_port)
     if s["running"]:
         click.echo(f"Server running on port {actual_port} (PID {s['pid']})")
@@ -66,11 +66,11 @@ def status(port):
 # ── stop ──────────────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--port", default=None, type=int, help="Port to stop (default: registry default)")
+@click.option("--port", default=None, type=int, help="Port to stop (default: from config.json)")
 def stop(port):
     """Stop a running server."""
-    reg = registry.load()
-    actual_port = port or reg["defaults"].get("port", 8083)
+    cfg = config.load()
+    actual_port = port or cfg.get("port", 8083)
     server.stop(actual_port)
 
 
@@ -84,6 +84,7 @@ def stop(port):
 def start(model, ctx, port, temp):
     """Start a model server (foreground)."""
     reg = registry.load()
+    cfg = config.load()
     m = registry.get_model(reg, model)
 
     if not Path(m["path"]).exists():
@@ -91,7 +92,7 @@ def start(model, ctx, port, temp):
             f"Model file not found: {m['path']}\nRe-run 'ai scan' or 'ai add'."
         )
 
-    merged = registry.merge_defaults(m, reg["defaults"])
+    merged = registry.merge_defaults(m, cfg)
     if ctx is not None:
         merged["ctx"] = ctx
     if port is not None:
@@ -120,8 +121,9 @@ def start(model, ctx, port, temp):
 def chat(model, message, port):
     """Send a message to a running model server."""
     reg = registry.load()
+    cfg = config.load()
     m = registry.get_model(reg, model)
-    merged = registry.merge_defaults(m, reg["defaults"])
+    merged = registry.merge_defaults(m, cfg)
     actual_port = port or merged.get("port", 8083)
 
     if not server.get_pid(actual_port):

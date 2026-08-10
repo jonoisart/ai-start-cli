@@ -73,6 +73,53 @@ def test_build_argv_jinja_false():
     assert "--jinja" not in argv
 
 
+# --- KV cache quantization ---
+#
+# f16 KV cache is llama-server's default and the memory ceiling on a fixed-RAM
+# machine: a 9B model at 131072 context needs ~16 GiB of KV alone. Quantizing to
+# q8_0 halves that. Emit the flags only when asked, so unset models keep the
+# current behavior exactly.
+
+def test_build_argv_omits_cache_type_by_default():
+    argv = server.build_argv(MODEL)
+    assert "-ctk" not in argv
+    assert "-ctv" not in argv
+
+
+def test_build_argv_sets_key_cache_type():
+    m = {**MODEL, "cache_type_k": "q8_0"}
+    argv = server.build_argv(m)
+    assert argv[argv.index("-ctk") + 1] == "q8_0"
+
+
+def test_build_argv_sets_value_cache_type():
+    m = {**MODEL, "cache_type_v": "q8_0"}
+    argv = server.build_argv(m)
+    assert argv[argv.index("-ctv") + 1] == "q8_0"
+
+
+def test_build_argv_cache_types_are_independent():
+    m = {**MODEL, "cache_type_k": "q8_0", "cache_type_v": "q5_1"}
+    argv = server.build_argv(m)
+    assert argv[argv.index("-ctk") + 1] == "q8_0"
+    assert argv[argv.index("-ctv") + 1] == "q5_1"
+
+
+def test_build_argv_rejects_quantized_cache_without_flash_attn():
+    """llama.cpp requires flash attention for quantized KV; failing here beats a
+    confusing runtime error after the process has already been replaced."""
+    import click
+    m = {**MODEL, "flash_attn": False, "cache_type_k": "q8_0"}
+    with pytest.raises(click.ClickException, match="flash_attn"):
+        server.build_argv(m)
+
+
+def test_build_argv_allows_f16_cache_without_flash_attn():
+    m = {**MODEL, "flash_attn": False, "cache_type_k": "f16"}
+    argv = server.build_argv(m)
+    assert argv[argv.index("-ctk") + 1] == "f16"
+
+
 # --- find_llama_server ---
 
 def test_find_llama_server_found():
