@@ -10,6 +10,11 @@ import urllib.request
 import click
 
 
+# KV cache types that llama.cpp will only accept alongside flash attention.
+# f16/f32/bf16 are unquantized and work either way.
+_QUANTIZED_CACHE_TYPES = {"q8_0", "q5_1", "q5_0", "q4_1", "q4_0", "iq4_nl"}
+
+
 def find_llama_server() -> str:
     binary = shutil.which("llama-server")
     if not binary:
@@ -38,6 +43,20 @@ def build_argv(model: dict) -> list:
         "--min-p", str(model.get("min_p", 0)),
         "-ngl", str(model.get("n_gpu_layers", 99)),
     ]
+    cache_k = model.get("cache_type_k")
+    cache_v = model.get("cache_type_v")
+    if not model.get("flash_attn", True):
+        for value in (cache_k, cache_v):
+            if value in _QUANTIZED_CACHE_TYPES:
+                raise click.ClickException(
+                    f"Cache type '{value}' requires flash attention. "
+                    "Set flash_attn to true, or use an unquantized cache type."
+                )
+    if cache_k:
+        argv += ["-ctk", cache_k]
+    if cache_v:
+        argv += ["-ctv", cache_v]
+
     if model.get("flash_attn", True):
         argv += ["-fa", "on"]
     if not model.get("reasoning", True):

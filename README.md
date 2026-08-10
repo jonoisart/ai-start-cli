@@ -130,6 +130,22 @@ Lowest to highest:
 | `jinja` | `true` passes `--jinja`. Needed by models with complex chat templates. |
 | `n_gpu_layers` | `99` means "offload everything"; llama-server caps it at the real layer count. |
 | `flash_attn` | `true` passes `-fa on`. Faster and lower-memory on Apple Silicon. |
+| `cache_type_k`, `cache_type_v` | KV cache precision, passed as `-ctk`/`-ctv`. Omitted by default, which means llama-server's `f16`. |
+
+### Fitting a model in memory
+
+The KV cache, not the model file, is usually what breaks a large context. It scales linearly with `ctx`, and at `f16` it is expensive: a 9B model at 131072 context needs roughly 16 GB of cache on top of the ~9 GB of weights.
+
+Setting `cache_type_k` and `cache_type_v` to `q8_0` halves that at close to no quality cost, and is often the difference between a context fitting and not:
+
+```json
+"cache_type_k": "q8_0",
+"cache_type_v": "q8_0"
+```
+
+Quantized cache types require flash attention. `ai start` refuses upfront rather than letting llama-server fail after the process has been replaced.
+
+Rough sizing, per token: `2 × layers × n_head_kv × (embed / n_head) × bytes_per_element`. Every term comes from the GGUF header. Models using grouped-query attention (`n_head_kv` well below `n_head`) are far cheaper than the parameter count suggests.
 
 Both paths can be overridden with `AI_CONFIG_PATH` and `AI_REGISTRY_PATH`, which is how the test suite stays off your real files.
 
