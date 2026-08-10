@@ -65,8 +65,14 @@ def build_argv(model: dict) -> list:
         argv.append("--jinja")
     if model.get("name"):
         argv += ["--alias", model["name"]]
-    if model.get("embeddings", True):
-        argv += ["--embeddings", "--pooling", model.get("pooling", "mean")]
+    # Both opt-in. Embedding models declare pooling_type in their GGUF header
+    # (Qwen3-Embedding declares LAST); passing --pooling overrides that, and a
+    # wrong pooling still returns correctly-sized vectors, so the damage is
+    # silent. Only send it when a model explicitly asks for one.
+    if model.get("embeddings", False):
+        argv.append("--embeddings")
+    if model.get("pooling"):
+        argv += ["--pooling", model["pooling"]]
     return argv
 
 

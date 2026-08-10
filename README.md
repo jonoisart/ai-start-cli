@@ -131,6 +131,23 @@ Lowest to highest:
 | `n_gpu_layers` | `99` means "offload everything"; llama-server caps it at the real layer count. |
 | `flash_attn` | `true` passes `-fa on`. Faster and lower-memory on Apple Silicon. |
 | `cache_type_k`, `cache_type_v` | KV cache precision, passed as `-ctk`/`-ctv`. Omitted by default, which means llama-server's `f16`. |
+| `embeddings` | `true` passes `--embeddings`, turning the server into an embedding endpoint. Off by default. |
+| `pooling` | Passes `--pooling`. **Omitted by default on purpose** — see below. |
+
+### Embedding models
+
+Set `embeddings: true` to serve `/v1/embeddings`. Leave `pooling` unset unless you have a specific reason.
+
+Embedding models declare their own pooling strategy in the GGUF header. Qwen3-Embedding, for example, declares `pooling_type: 3` (last-token). If you pass `--pooling mean`, llama.cpp overrides the model's declaration and pools the wrong way. The endpoint still responds, the vectors still come back at the right dimension, and retrieval is quietly worse — with no error anywhere. Discovering it later means re-embedding your whole corpus.
+
+So `pooling` exists as an escape hatch, not a default. Omitting it lets each model use what it was trained for.
+
+`llama-server` serves one model per process, so an embedding model needs its own port alongside any chat model:
+
+```bash
+ai start qwen              # chat on 8083
+ai start embed --port 8084 # embeddings on 8084, separate terminal
+```
 
 ### Fitting a model in memory
 

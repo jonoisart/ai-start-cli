@@ -73,6 +73,43 @@ def test_build_argv_jinja_false():
     assert "--jinja" not in argv
 
 
+# --- embeddings and pooling ---
+#
+# Both must be opt-in. Embedding models declare their own pooling_type in the
+# GGUF header (Qwen3-Embedding declares 3 = LAST); passing --pooling overrides
+# that declaration. A wrong pooling type still returns correctly-sized vectors,
+# so the failure is silent and only shows up as degraded retrieval.
+
+def test_build_argv_omits_embeddings_by_default():
+    argv = server.build_argv(MODEL)
+    assert "--embeddings" not in argv
+
+
+def test_build_argv_enables_embeddings_when_set():
+    m = {**MODEL, "embeddings": True}
+    argv = server.build_argv(m)
+    assert "--embeddings" in argv
+
+
+def test_build_argv_omits_pooling_by_default():
+    """No --pooling means llama.cpp uses the model's declared pooling_type."""
+    argv = server.build_argv(MODEL)
+    assert "--pooling" not in argv
+
+
+def test_build_argv_omits_pooling_when_embeddings_enabled():
+    """Enabling embeddings must not imply a pooling strategy."""
+    m = {**MODEL, "embeddings": True}
+    argv = server.build_argv(m)
+    assert "--pooling" not in argv
+
+
+def test_build_argv_sets_pooling_when_specified():
+    m = {**MODEL, "embeddings": True, "pooling": "last"}
+    argv = server.build_argv(m)
+    assert argv[argv.index("--pooling") + 1] == "last"
+
+
 # --- KV cache quantization ---
 #
 # f16 KV cache is llama-server's default and the memory ceiling on a fixed-RAM
