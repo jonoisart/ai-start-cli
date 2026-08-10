@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from ai import registry
+
 DEFAULT_CONFIG = {
     "port": 8083,
     "temp": 0.7,
@@ -23,15 +25,42 @@ def _path() -> Path:
 
 def load() -> dict:
     p = _path()
-    if not p.exists():
-        p.parent.mkdir(parents=True, exist_ok=True)
-        return dict(DEFAULT_CONFIG)
-    try:
-        return json.loads(p.read_text())
-    except json.JSONDecodeError:
-        raise click.ClickException(
-            f"Config file is corrupt: {p}\nDelete it to regenerate defaults."
-        )
+    if p.exists():
+        try:
+            return json.loads(p.read_text())
+        except json.JSONDecodeError:
+            raise click.ClickException(
+                f"Config file is corrupt: {p}\nDelete it to regenerate defaults."
+            )
+    migrated = _migrate_from_registry()
+    if migrated is not None:
+        return migrated
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return dict(DEFAULT_CONFIG)
+
+
+def _migrate_from_registry() -> dict | None:
+    """Move a legacy `defaults` block out of registry.json into config.json.
+
+    Returns None when there is nothing to migrate. A corrupt registry raises
+    through registry.load() rather than being masked — the message names the
+    file that actually needs fixing.
+    """
+    reg = registry.load()
+    if "defaults" not in reg:
+        return None
+
+    legacy = reg.pop("defaults")
+    cfg = {**DEFAULT_CONFIG, **legacy}
+
+    # Config first, then strip the registry. A crash between the two leaves a
+    # stale `defaults` key that the next run ignores. The reverse order would
+    # lose the user's values if the config write failed.
+    save(cfg)
+    registry.save(reg)
+
+    click.echo(f"Migrated defaults from registry.json to {_path()}", err=True)
+    return cfg
 
 
 def save(data: dict) -> None:

@@ -5,18 +5,7 @@ from pathlib import Path
 
 import click
 
-_DEFAULT = {
-    "defaults": {
-        "port": 8083,
-        "temp": 0.7,
-        "top_p": 0.8,
-        "top_k": 20,
-        "min_p": 0,
-        "n_gpu_layers": 99,
-        "flash_attn": True,
-    },
-    "models": {},
-}
+_DEFAULT = {"models": {}}
 
 
 def _path() -> Path:

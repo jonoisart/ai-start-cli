@@ -34,16 +34,20 @@ Runtime dependency is `click` alone. Everything else is stdlib: `struct`, `json`
 ## Module map
 
 ```
-cli.py  ──┬──►  registry.py     JSON CRUD on the model database
-          ├──►  scanner.py      find .gguf files, parse their binary headers
-          └──►  server.py       build argv, start/stop/status the process
+cli.py  ──┬──►  config.py      user settings, plus one-time migration
+          ├──►  registry.py    JSON CRUD on the model database
+          ├──►  scanner.py     find .gguf files, parse their binary headers
+          └──►  server.py      build argv, start/stop/status the process
+
+config.py ────►  registry.py   migration only — the one inter-module import
 ```
 
-The three worker modules import nothing from each other. `cli.py` is the only coordinator, and it holds no business logic — every command loads state, calls into a module, and prints. That separation is what makes each module testable in isolation.
+`cli.py` is the only coordinator and holds no business logic — every command loads state, calls into a module, and prints. The one dependency between worker modules runs `config → registry`, so that migration can read a legacy `defaults` block and write the stripped registry back. It never runs the other way: `registry.py` does not know `config.py` exists.
 
 | Module | Responsibility |
 |---|---|
 | `cli.py` | Click command definitions and wiring |
+| `config.py` | Read/write `config.json`, migrate legacy defaults out of the registry |
 | `registry.py` | Read/write `registry.json`, look up and mutate model records |
 | `scanner.py` | Walk the filesystem for `.gguf`, decode GGUF headers, derive nicknames |
 | `server.py` | Locate the binary, construct the command line, manage the process |
@@ -52,14 +56,19 @@ The three worker modules import nothing from each other. `cli.py` is the only co
 
 ## Data files
 
-Both live in `~/.config/ai/`.
+Two files, both in `~/.config/ai/`. They were one file until config extraction split them, so that `ai scan` rebuilding the model list cannot destroy your settings.
+
+**`config.json`** — user settings. Flat, seven keys.
+
+```json
+{ "port": 8083, "temp": 0.7, "top_p": 0.8, "top_k": 20,
+  "min_p": 0, "n_gpu_layers": 99, "flash_attn": true }
+```
 
 **`registry.json`** — the model database.
 
 ```json
 {
-  "defaults": { "port": 8083, "temp": 0.7, "top_p": 0.8, "top_k": 20,
-                "min_p": 0, "n_gpu_layers": 99, "flash_attn": true },
   "models": {
     "qwen": {
       "path": "/Users/…/Qwen3.5-9B-…-Q8_0.gguf",
@@ -72,16 +81,18 @@ Both live in `~/.config/ai/`.
 }
 ```
 
-Every module resolves its path through an environment variable:
+Both modules resolve their path through an environment variable — `AI_REGISTRY_PATH` and `AI_CONFIG_PATH` respectively:
 
 ```python
 def _path() -> Path:
     return Path(os.environ.get("AI_REGISTRY_PATH", "~/.config/ai/registry.json")).expanduser()
 ```
 
-The default is what you use day to day. Tests override the variable to point at a temp directory, which is the entire file-isolation strategy.
+The default is what you use day to day. Tests override both variables to point at a temp directory, which is the entire file-isolation strategy.
 
-Writes are atomic: serialize to `registry.tmp`, then `rename()` over the target. `rename` is atomic on POSIX, so an interrupted write can never leave a half-written registry.
+Writes are atomic: serialize to a `.tmp` sibling, then `rename()` over the target. `rename` is atomic on POSIX, so an interrupted write can never leave a half-written file.
+
+**Migration.** On the first `config.load()` where `config.json` is absent, `_migrate_from_registry()` moves any legacy `defaults` block out of the registry and announces it on stderr. It writes `config.json` *before* stripping the registry — a crash between the two leaves a stale `defaults` key that the next run ignores, whereas the reverse order would lose your settings. Detection needs no filesystem check: `registry._DEFAULT` is `{"models": {}}`, so a missing registry yields a dict with no `defaults` key.
 
 ---
 
@@ -103,7 +114,7 @@ m = registry.get_model(reg, "qwen")   # raises ClickException if unknown
 **4. Resolve settings through three layers.**
 
 ```python
-merged = registry.merge_defaults(m, reg["defaults"])
+merged = registry.merge_defaults(m, cfg)
 if ctx is not None:
     merged["ctx"] = ctx
 ```
@@ -121,7 +132,7 @@ Precedence, lowest to highest:
 
 | Layer | Source | Example |
 |---|---|---|
-| Global defaults | `defaults` block | `temp: 0.7` applies everywhere |
+| Global defaults | `config.json` | `temp: 0.7` applies everywhere |
 | Per-model | the model's record | `qwen` sets `jinja: true` |
 | CLI flags | what you typed | `--port 8084` beats both |
 
@@ -238,6 +249,10 @@ Two techniques carry the suite:
 
 ## Planned work
 
-`docs/superpowers/specs/2026-08-09-config-extraction-design.md` covers splitting the `defaults` block out of `registry.json` into its own `config.json`, so that `ai scan` rebuilding the registry can't take user settings with it, and so `ai init` has somewhere to write. Not yet implemented; when it lands, the `defaults` key disappears from the registry schema above.
+Next up, in rough priority order:
+
+- **`ai init`** — first-run setup wizard. `config.json` exists so this has somewhere to write.
+- **`ai install`** — download quantizations from HuggingFace.
+- **mlx-lm support** — detect mlx-lm models in `ai scan`, launch them from `ai start`.
 
 Specs and plans live under `docs/superpowers/`. Design docs go in `specs/`, task-by-task implementation plans in `plans/`.
