@@ -49,7 +49,7 @@ def path(model):
 # ── status ────────────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--port", default=None, type=int, help="Port to check (default: registry default)")
+@click.option("--port", default=None, type=int, help="Port to check (default: from config.json)")
 def status(port):
     """Check if a server is running."""
     cfg = config.load()
@@ -66,7 +66,7 @@ def status(port):
 # ── stop ──────────────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--port", default=None, type=int, help="Port to stop (default: registry default)")
+@click.option("--port", default=None, type=int, help="Port to stop (default: from config.json)")
 def stop(port):
     """Stop a running server."""
     cfg = config.load()
